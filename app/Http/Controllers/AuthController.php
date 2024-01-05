@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -12,18 +13,23 @@ class AuthController extends Controller
 
     function login(Request $req){
 
-        $user = User::where('email', $req->email)->first();
+        $validateData = $req->validate([
+            'email' => 'required|email',
+            'password' => 'required|min:8'
+        ]);
 
-        if(!$user || $user->password != $req->password){
-            return redirect()->route('login');
+        if(Auth::attempt($validateData)){
+            $req->session()->regenerate();
+
+            if(Auth::user()->role == 1){
+                return redirect()->route('admin')->with('user', Auth::user());
+            }
+            return redirect()->route('home')->with('user', Auth::user());
         }
 
-        Auth::login($user);
-
-        if(Auth::user()->role == 1){
-            return redirect()->route('admin');
-        }
-        return redirect()->route('home');
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ]);
 
     }
 
