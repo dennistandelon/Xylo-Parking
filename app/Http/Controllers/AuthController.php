@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use App;
 
 class AuthController extends Controller
 {
-    function loginView(){
+    function loginView($locale='en'){
+
+        App::setlocale($locale);
+
         return view('login');
     }
 
@@ -21,10 +26,11 @@ class AuthController extends Controller
         if(Auth::attempt($validateData)){
             $req->session()->regenerate();
 
+            $locale = App::currentLocale();
             if(Auth::user()->role == 1){
-                return redirect()->route('admin')->with('user', Auth::user());
+                return redirect()->route('admin',["locale"=>$locale])->with('user', Auth::user());
             }
-            return redirect()->route('home')->with('user', Auth::user());
+            return redirect()->route('home',["locale"=>$locale])->with('user', Auth::user());
         }
 
         return back()->withErrors([
@@ -33,24 +39,36 @@ class AuthController extends Controller
 
     }
 
-    function logout(){
+    function logout(Request $req){
         Auth::logout();
 
-        return redirect()->route('login');
+        $locale = $req->locale;
+        return redirect()->route('loginView',["locale"=>$locale]);
     }
 
-    function registerView(){
+    function registerView($locale='en'){
+
+        App::setlocale($locale);
         return view('register');
     }
 
     function register(Request $req){
+        $validateData = $req->validate([
+            'email'=>'required|email',
+            'password'=>'required|min:8',
+            'name'=>'required'
+        ]);
+
+
         $user = new User;
 
         $user->name = $req->name;
         $user->email = $req->email;
         $user->role = 0; // 0 = customer, 1 = admin
-        $user->password = $req->password;
+        $user->password = bcrypt($req->password);
 
         $user->save();
+
+        return redirect()->back();
     }
 }

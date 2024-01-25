@@ -22,6 +22,7 @@ return new class extends Migration
             $table->datetime('out_date')->nullable();
             $table->integer('total_price');
             $table->integer('total_hours');
+            $table->string('user_email');
         });
     }
 
